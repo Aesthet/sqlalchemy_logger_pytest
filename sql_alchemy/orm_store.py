@@ -7,18 +7,11 @@ from sqlalchemy import create_engine, Column, Integer, String, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-
-engine = create_engine('sqlite:///:memory:', echo=True)
-Session = sessionmaker(bind=engine)
 Base = declarative_base()
-# Session = sessionmaker() # In case app does'nt yet have Engine when defining module-level objects
-# Session.configure(bind=engine)  # once engine is available
-session = Session()
 
 
 class OpencartMarketplace(Base):
     """orm class which map to table market"""
-    # def __init__(self, product_id=None, product_name='', product_price=0, product_desc=''):
 
     __tablename__ = 'market'
 
@@ -28,69 +21,100 @@ class OpencartMarketplace(Base):
     product_desc = Column(String)
 
     def __repr__(self):
+        logging.debug('Representation method called')
         return f"<OpencartMarketplace(product_name='{self.product_name}', " \
                f"product_price='{self.product_price}', " \
                f"product_desc='{self.product_desc}')>"
 
+    @staticmethod
+    def find_product_by_name(name):
+        logging.info(f'Search for product "{name}" performed')
+        for product in session.query(OpencartMarketplace). \
+                filter(OpencartMarketplace.product_name == name):
+            logging.info(f'Product "{name}" found')
+            return product
+        logging.info(f'Product "{name}" is missing')
 
-Base.metadata.create_all(engine)
-product_iphone_x = OpencartMarketplace(product_name='iPhone X', product_price=987.99,
-                                       product_desc='iPhone featuring a 5.8-inch OLED display, '
-                                                    'facial recognition and 3D camera '
-                                                    'functionality, a glass body, and an A11 '
-                                                    'Bionic processor')
-session.add(product_iphone_x)
-session.add_all([
-    OpencartMarketplace(product_name='Xiaomi Mi7 Plus', product_price=455,
-                        product_desc='6.01-inch  display 18:9, eight-core processor Snapdragon 845,'
-                                     ' RAM - 6 GB, dual camera: main 12-megapixel module based on '
-                                     'the Sony IMX380 sensor and the second 20-megapixel module, '
-                                     'like the OnePlus 5'),
-    OpencartMarketplace(product_name='Samsung Galaxy S8+', product_price=875.55,
-                        product_desc='6.20-inch touchscreen display 1440:2960, 1.9GHz octa-core '
-                                     'Samsung Exynos 8895 processor and it comes with 4GB of RAM, '
-                                     '64GB storage')])
-session.commit()
+    @staticmethod
+    def create_new_product(name, price, description):
+        logging.info(f'Adding new product: "{name}" to database')
+        new_product = OpencartMarketplace(product_name=str(name), product_price=float(price),
+                                          product_desc=str(description))
+        session.add(new_product)
+        logging.info(f'Product "{name}" added to database')
 
-# session.query(User).filter(User.name.in_(['Edwardo', 'fakeuser'])).all()
-# session.query(User).filter(User.name.in_(['ed', 'fakeuser'])).all()
-# for instance in session.query(User).order_by(User.id):
-#     print(instance.name, instance.fullname)
-# for name, fullname in session.query(User.name, User.fullname):
-#     print(name, fullname)
-# for row in session.query(User, User.name).all():
-# ...    print(row.User, row.name)
-# <User(name='ed', fullname='Ed Jones', password='f8s7ccs')> ed
-#
-# >>> session.query(User).filter(User.name.like('%ed')).count()
-# 2
-# >>> from sqlalchemy.sql import exists
-# >>> stmt = exists().where(Address.user_id==User.id)
-# SQL>>> for name, in session.query(User.name).filter(stmt):
-# ...     print(na  me)
-# jack
-#
-# >>> session.delete(jack)
-# SQL>>> session.query(User).filter_by(name='jack').count()
-# 0
-# >>> session.query(Address).filter(
-# ...     Address.email_address.in_(['jack@google.com', 'j25@yahoo.com'])
-# ...  ).count()
-# 2
+    @staticmethod
+    def update_product_by_name(name, price=None, description=None):
+        logging.info(f'Trying to update product: "{name}"')
+        update_product = session.query(OpencartMarketplace).filter_by(product_name=name).first()
+        if price is None and description is None:
+            logging.info(f'No new info for product: "{name}" provided, so no changes made')
+        elif price is None:
+            update_product.product_description = description
+            logging.info(f'Updated product description: "{description}" for product: "{name}"')
+        elif description is None:
+            logging.info(f'Updated product price: "{price}" for product: "{name}"')
+            update_product.product_price = price
+        else:
+            update_product.product_description = description
+            update_product.product_price = price
+            logging.info(f'Updated product description: "{description}" and product price: '
+                         f'"{price}"for product: "{name}"')
 
-# # create logger
-# module_logger = logging.getLogger('spam_application.auxiliary')
-#
-#
-# class Auxiliary:
-#     def __init__(self):
-#         self.logger = logging.getLogger('spam_application.auxiliary.Auxiliary')
-#         self.logger.info('creating an instance of Auxiliary')
-#
-#     def do_something(self):
-#         self.logger.info('doing something')
-#         a = 1 + 1
-#         self.logger.info('done doing something')
-#
-# def some_function():
-#     module_logger.info('received a call to "some_function"')
+    @staticmethod
+    def delete_product_by_name(name):
+        logging.info(f'Deleting product: "{name}" from database')
+        delete_product = session.query(OpencartMarketplace).filter_by(product_name=name).first()
+        session.delete(delete_product)
+        logging.info(f'Product: "{name}" deleted')
+
+    @staticmethod
+    def get_products_count():
+        logging.info('Getting count of all products in database')
+        count_ = session.query(OpencartMarketplace).count()
+        logging.info(f'There are "{count_}" all products in database')
+        return count_
+
+    @staticmethod
+    def add_three_products():
+        logging.info('Adding 3 products (smart phones) to database')
+        session.add_all([
+            OpencartMarketplace(product_name='iPhone X', product_price=987.99,
+                                product_desc='iPhone featuring a 5.8-inch OLED display, '
+                                             'facial recognition and 3D camera functionality, '
+                                             'a glass body, and an A11 Bionic processor'),
+            OpencartMarketplace(product_name='Xiaomi Mi7 Plus', product_price=455,
+                                product_desc='6.01-inch  display 18:9, eight-core processor Snapdragon 845,'
+                                             ' RAM - 6 GB, dual camera: main 12-megapixel module based on '
+                                             'the Sony IMX380 sensor and the second 20-megapixel module, '
+                                             'like the OnePlus 5'),
+            OpencartMarketplace(product_name='Samsung Galaxy S8+', product_price=875.55,
+                                product_desc='6.20-inch touchscreen display 1440:2960, 1.9GHz octa-core '
+                                             'Samsung Exynos 8895 processor and it comes with 4GB of RAM, '
+                                             '64GB storage')])
+        logging.info('Commiting')
+        session.commit()
+
+
+def main():
+    global session
+    engine = create_engine('sqlite:///:memory:', echo=True)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                        datefmt='%m-%d %H:%M',
+                        filename='parts/orm_store.log',
+                        filemode='w')
+    OpencartMarketplace.add_three_products()
+    OpencartMarketplace.get_products_count()
+    OpencartMarketplace.update_product_by_name('iPhone X', price=899.9, description='Some new description')
+    OpencartMarketplace.update_product_by_name('iPhone X', description='Other new description')
+    OpencartMarketplace.find_product_by_name('no such item')
+    OpencartMarketplace.create_new_product('Nokia', 10, 'unbreakable nokia 3310')
+    OpencartMarketplace.get_products_count()
+
+
+if __name__ == '__main__':
+    main()

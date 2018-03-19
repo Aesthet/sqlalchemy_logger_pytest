@@ -50,11 +50,11 @@ def db_session(engine_prepare, prepare_table):
 
 @pytest.yield_fixture
 def pre_create_product(db_session):
-    product_iphone_x = OpencartMarketplace.create_new_product('iPhone X', 987.99,
-                                                              'iPhone featuring a 5.8-inch OLED display, '
-                                                              'facial recognition and 3D camera '
-                                                              'functionality, a glass body, and an A11 '
-                                                              'Bionic processor')
+    product_iphone_x = OpencartMarketplace(product_name='iPhone X', product_price=987.99,
+                                           product_desc='iPhone featuring a 5.8-inch OLED display, '
+                                                        'facial recognition and 3D camera '
+                                                        'functionality, a glass body, and an A11 '
+                                                        'Bionic processor')
     db_session.add(product_iphone_x)
 
     yield db_session
@@ -62,3 +62,23 @@ def pre_create_product(db_session):
     db_session.delete(product_iphone_x)
 
 
+@pytest.fixture(scope='session')
+def create_product(db_session):
+    product_iphone_x = OpencartMarketplace(product_name='iPhone X', product_price=987.99,
+                                           product_desc='iPhone featuring a 5.8-inch OLED display, '
+                                                        'facial recognition and 3D camera '
+                                                        'functionality, a glass body, and an A11 '
+                                                        'Bionic processor')
+    db_session.add(product_iphone_x)
+
+
+@pytest.yield_fixture
+def pre_create_product(db_session):
+    product_iphone_x = OpencartMarketplace(product_name='iPhone X', product_price=987.99,
+                                           product_desc='iPhone featuring a 5.8-inch OLED display, '
+                                                        'facial recognition and 3D camera '
+                                                        'functionality, a glass body, and an A11 '
+                                                        'Bionic processor')
+    db_session.add(product_iphone_x)
+
+    yield db_session
